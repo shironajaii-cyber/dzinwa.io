@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kuis Balap Lari 2 Pemain</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        /* Track Area */
+        .track-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .lane {
+            position: relative;
+            height: 60px;
+            background-color: #d4a373;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-bottom: 2px dashed #fff;
+            overflow: hidden;
+        }
+
+        .finish-line {
+            position: absolute;
+            right: 20px;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            background: repeating-linear-gradient(
+                0deg,
+                #000,
+                #000 10px,
+                #fff 10px,
+                #fff 20px
+            );
+            z-index: 1;
+        }
+
+        /* Player Styling */
+        .player {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            transition: left 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            z-index: 2;
+        }
+
+        #player-green {
+            background-color: #2ecc71;
+            box-shadow: 0 0 8px #2ecc71;
+        }
+
+        #player-red {
+            background-color: #e74c3c;
+            box-shadow: 0 0 8px #e74c3c;
+        }
+
+        /* Quiz Card */
+        .quiz-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .turn-indicator {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .question {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-option {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-option:hover {
+            background-color: #2980b9;
+        }
+
+        /* Feedback Popup */
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            height: 25px;
+        }
+
+        /* Result Screen */
+        .winner-screen {
+            display: none;
+            text-align: center;
+        }
+
+        .btn-restart {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Kuis Balap Lari 2 Pemain</h1>
+
+    <!-- Track Game -->
+    <div class="track-container">
+        <div class="finish-line"></div>
+        <div class="lane">
+            <div id="player-green" class="player">Hijau</div>
+        </div>
+        <div class="lane">
+            <div id="player-red" class="player">Merah</div>
+        </div>
+    </div>
+
+    <!-- Area Quiz -->
+    <div class="quiz-container" id="quiz-box">
+        <div id="turn-indicator" class="turn-indicator" style="background-color: #2ecc71;">
+            Giliran: Pemain Hijau
+        </div>
+        
+        <div id="question" class="question">Teks Soal Akan Muncul Di Sini</div>
+        
+        <div class="options-grid" id="options-container">
+            <!-- Tombol jawaban di-generate oleh JS -->
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+    </div>
+
+    <!-- Area Pemenang -->
+    <div class="quiz-container winner-screen" id="winner-box">
+        <h2 id="winner-text">Pemain Menang!</h2>
+        <button class="btn-restart" onclick="restartGame()">Main Lagi</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. DATA SOAL (BISA DIGANTI / DITAMBAH DI SINI)
+        // ==========================================
+        const quizData = [
+            {
+                question: "Diciptakan dari cahaya(nur)?",
+                options: ["Jin", "Malaikat", "Setan", "Manusia"],
+                correct: 1 // Indeks jawaban benar (0 = Jin, 1 = Malaikat, dst)
+            },
+            {
+                question: "Salah satu nama Malaikat",
+                options: ["Ridwan", "Yahya", "Ridho", "Rozaq"],
+                correct: 0
+            },
+            {
+                question: "كُلٌّ اٰمَنَ بِاللّٰهِ وَمَلٰۤىِٕكَتِهٖ وَكُتُبِهٖ وَرُسُلِهٖ",
+                options: ["Al-Baqarah 258", "An-Nisa' 136", "Al-Baqarah 285", "An-Nisa' 163"],
+                correct: 2
+            },
+            {
+                question: "Dijadikan sebagai utusan-utusan: Adalah potongan terjemah dari surah?",
+                options: ["Al-Baqarah 258", "An-Nisa' 136", "Al-Baqarah 205", "Fatir 1"],
+                correct: 3
+            },
+            {
+                question: "وَمَنْ يَّكْفُرْ بِاللّٰهِ وَمَلٰۤىِٕكَتِهٖ وَكُتُبِهٖ وَرُسُلِهٖ وَالْيَوْمِ الْاٰخِرِ فَقَدْ ضَلَّ ضَلٰلًا ۢ بَعِيْدًا",
+                options: ["Al-Kahfi 50", "An-Nisa' 136", "Al-Ahzab 43", "At-Tahrim 6"],
+                correct: 1
+            },
+            {
+                question: "
+            ];
+
+        // ==========================================
+        // 2. VARIABEL GAME
+        // ==========================================
+        let currentQuestionIndex = 0;
+        let activePlayer = 'green'; // 'green' atau 'red'
+        
+        // Posisi Pemain dalam Persentase (%)
+        let posGreen = 0;
+        let posRed = 0;
+        const step = 18; // Persentase maju setiap jawaban benar (sekitar 5 kali jawab benar untuk menang)
+        const maxPos = 85; // Garis Finish
+
+        // Element DOM
+        const playerGreenEl = document.getElementById('player-green');
+        const playerRedEl = document.getElementById('player-red');
+        const turnIndicatorEl = document.getElementById('turn-indicator');
+        const questionEl = document.getElementById('question');
+        const optionsContainerEl = document.getElementById('options-container');
+        const feedbackEl = document.getElementById('feedback');
+        const quizBoxEl = document.getElementById('quiz-box');
+        const winnerBoxEl = document.getElementById('winner-box');
+        const winnerTextEl = document.getElementById('winner-text');
+
+        // ==========================================
+        // 3. LOGIKA GAME
+        // ==========================================
+        function loadQuestion() {
+            feedbackEl.innerText = "";
+            const currentQuiz = quizData[currentQuestionIndex];
+            
+            questionEl.innerText = currentQuiz.question;
+            optionsContainerEl.innerHTML = "";
+
+            currentQuiz.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.classList.add('btn-option');
+                button.innerText = option;
+                button.onclick = () => checkAnswer(index);
+                optionsContainerEl.appendChild(button);
+            });
+
+            updateTurnUI();
+        }
+
+        function updateTurnUI() {
+            if (activePlayer === 'green') {
+                turnIndicatorEl.innerText = "Giliran: Pemain Hijau";
+                turnIndicatorEl.style.backgroundColor = "#2ecc71";
+            } else {
+                turnIndicatorEl.innerText = "Giliran: Pemain Merah";
+                turnIndicatorEl.style.backgroundColor = "#e74c3c";
+            }
+        }
+
+        function checkAnswer(selectedIndex) {
+            const currentQuiz = quizData[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQuiz.correct;
+
+            // Nonaktifkan semua tombol setelah memilih
+            const buttons = optionsContainerEl.getElementsByTagName('button');
+            for (let btn of buttons) {
+                btn.disabled = true;
+            }
+
+            if (isCorrect) {
+                feedbackEl.style.color = "#27ae60";
+                feedbackEl.innerText = "Jawaban Benar! Karakter Maju!";
+                movePlayer(activePlayer);
+            } else {
+                feedbackEl.style.color = "#c0392b";
+                feedbackEl.innerText = "Jawaban Salah! Karakter Diam.";
+            }
+
+            // Cek apakah ada yang menang
+            if (posGreen >= maxPos || posRed >= maxPos) {
+                setTimeout(endGame, 1000);
+                return;
+            }
+
+            // Pindah Giliran & Soal Berikutnya setelah delay 1.5 detik
+            setTimeout(() => {
+                activePlayer = activePlayer === 'green' ? 'red' : 'green';
+                currentQuestionIndex = (currentQuestionIndex + 1) % quizData.length; // Perulangan soal jika soal habis
+                loadQuestion();
+            }, 1500);
+        }
+
+        function movePlayer(player) {
+            if (player === 'green') {
+                posGreen += step;
+                if (posGreen > maxPos) posGreen = maxPos;
+                playerGreenEl.style.left = `calc(${posGreen}% + 10px)`;
+            } else {
+                posRed += step;
+                if (posRed > maxPos) posRed = maxPos;
+                playerRedEl.style.left = `calc(${posRed}% + 10px)`;
+            }
+        }
+
+        function endGame() {
+            quizBoxEl.style.display = 'none';
+            winnerBoxEl.style.display = 'block';
+
+            if (posGreen >= maxPos) {
+                winnerTextEl.innerText = "🎉 Pemain HIJAU Menang! 🎉";
+                winnerTextEl.style.color = "#2ecc71";
+            } else {
+                winnerTextEl.innerText = "🎉 Pemain MERAH Menang! 🎉";
+                winnerTextEl.style.color = "#e74c3c";
+            }
+        }
+
+        function restartGame() {
+            posGreen = 0;
+            posRed = 0;
+            playerGreenEl.style.left = '10px';
+            playerRedEl.style.left = '10px';
+            activePlayer = 'green';
+            currentQuestionIndex = 0;
+            
+            winnerBoxEl.style.display = 'none';
+            quizBoxEl.style.display = 'block';
+            
+            loadQuestion();
+        }
+
+        // Jalankan game pertama kali
+        loadQuestion();
+    </script>
+</body>
+</html>
